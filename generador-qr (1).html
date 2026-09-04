@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de QR — Audioguías Chavín</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --piedra:#EDE7DD; --tinta:#241F1A; --tinta-suave:#5A5044;
+    --bronce:#7A6234; --oxido:#8A3B2E; --borde:#C9BFA9; --blanco:#FBF9F4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--piedra); color:var(--tinta);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    margin:0; padding:24px 16px 60px;
+  }
+  h1{ font-size:20px; text-align:center; margin-bottom:4px; }
+  .sub{ text-align:center; color:var(--tinta-suave); font-size:14px; margin-bottom:24px; }
+
+  .config{
+    max-width:520px; margin:0 auto 28px; background:var(--blanco);
+    border:1px solid var(--borde); border-radius:8px; padding:16px 18px;
+  }
+  .config label{ display:block; font-size:13px; color:var(--tinta-suave); margin-bottom:4px; }
+  .config input{
+    width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px;
+    font-size:14px; font-family:inherit; margin-bottom:12px;
+  }
+  .config button{
+    background:var(--bronce); color:var(--blanco); border:none; border-radius:6px;
+    padding:10px 16px; font-size:14px; cursor:pointer; width:100%;
+  }
+  .ayuda{ font-size:12px; color:var(--tinta-suave); margin-top:-6px; margin-bottom:12px; }
+
+  #hoja{ max-width:900px; margin:0 auto; }
+  .tarjeta-panel{
+    background:var(--blanco); border:1px solid var(--borde); border-radius:10px;
+    padding:20px; margin-bottom:18px; break-inside: avoid;
+  }
+  .tarjeta-panel h2{
+    font-size:16px; margin:0 0 14px; text-align:center;
+  }
+  .qrs{
+    display:flex; gap:16px; justify-content:center; flex-wrap:wrap;
+  }
+  .qr-item{ text-align:center; }
+  .qr-item .caja{ background:white; padding:8px; border-radius:6px; display:inline-block; }
+  .qr-item p{ font-size:12px; color:var(--tinta-suave); margin:6px 0 0; }
+  .qr-item .link{ font-size:10px; word-break:break-all; color:var(--tinta-suave); max-width:140px; margin-top:2px;}
+
+  @media print{
+    .config, .no-print{ display:none; }
+    body{ background:white; }
+    .tarjeta-panel{ border:1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Generador de códigos QR</h1>
+<p class="sub">Un QR por idioma, para imprimir junto a cada panel del museo</p>
+
+<div class="config">
+  <label>URL donde vas a publicar audioguia.html (sin espacios)</label>
+  <input id="baseUrl" type="text" placeholder="https://tuusuario.github.io/audioguia-chavin/audioguia.html" value="">
+  <div class="ayuda">Ejemplo si usas GitHub Pages: https://tuusuario.github.io/audioguia-chavin/audioguia.html — ver README para el paso a paso.</div>
+
+  <label>Paneles a generar (ej: 1-5 o 1,2,3)</label>
+  <input id="rango" type="text" value="1-5">
+
+  <button onclick="generar()">Generar QR</button>
+</div>
+
+<div id="hoja"></div>
+
+<script>
+  const IDIOMAS = { es: "Español", qu: "Quechua", en: "English" };
+
+  function parseRango(texto){
+    const ids = new Set();
+    texto.split(',').forEach(function(parte){
+      parte = parte.trim();
+      if(parte.includes('-')){
+        const [a,b] = parte.split('-').map(Number);
+        for(let i=a;i<=b;i++) ids.add(i);
+      } else if(parte){
+        ids.add(Number(parte));
+      }
+    });
+    return Array.from(ids).sort(function(a,b){return a-b;});
+  }
+
+  function generar(){
+    const base = document.getElementById('baseUrl').value.trim();
+    if(!base){
+      alert('Primero pega la URL donde vas a publicar audioguia.html');
+      return;
+    }
+    const ids = parseRango(document.getElementById('rango').value);
+    const hoja = document.getElementById('hoja');
+    hoja.innerHTML = '';
+
+    ids.forEach(function(id){
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'tarjeta-panel';
+      tarjeta.innerHTML = '<h2>Panel ' + id + '</h2><div class="qrs" id="qrs-' + id + '"></div>';
+      hoja.appendChild(tarjeta);
+
+      Object.keys(IDIOMAS).forEach(function(cod){
+        const url = base + '?panel=' + id + '&lang=' + cod;
+        const wrap = document.createElement('div');
+        wrap.className = 'qr-item';
+        const caja = document.createElement('div');
+        caja.className = 'caja';
+        wrap.appendChild(caja);
+        const label = document.createElement('p');
+        label.textContent = IDIOMAS[cod];
+        wrap.appendChild(label);
+        const linkTxt = document.createElement('div');
+        linkTxt.className = 'link';
+        linkTxt.textContent = url;
+        wrap.appendChild(linkTxt);
+        document.getElementById('qrs-' + id).appendChild(wrap);
+
+        new QRCode(caja, { text: url, width: 110, height: 110 });
+      });
+    });
+  }
+
+</script>
+
+<p class="no-print" style="text-align:center;color:var(--tinta-suave);font-size:12px;">
+  Cuando estén listos, usa Ctrl+P (o Cmd+P) para imprimir o guardar como PDF.
+</p>
+
+</body>
+</html>

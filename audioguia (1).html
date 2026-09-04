@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audioguía — Museo Nacional Chavín</title>
+<style>
+  /* ============================================================
+     CONFIGURACIÓN DE PANELES — edita esta lista con los paneles reales
+     ============================================================ */
+</style>
+<script>
+  // ============================================================
+  // 1) LISTA DE PANELES — AGREGA/EDITA AQUÍ
+  // ============================================================
+  // "id"   -> número de panel (coordinado con el museo)
+  // "titulo" -> nombre corto del panel (se muestra en la lista)
+  // "audio" -> objeto con el link directo del audio para cada idioma.
+  //            Deja "" (vacío) si ese idioma aún no está grabado/subido.
+  //
+  // CÓMO CONSEGUIR EL LINK DE GOOGLE DRIVE (ver README para el detalle):
+  //   1. Sube el MP3 a Drive → clic derecho → "Compartir" → "Cualquiera con el enlace"
+  //   2. Copia el ID que aparece en la URL: drive.google.com/file/d/ >ID< /view
+  //   3. Pega ese ID en vez de "PEGA_AQUI_EL_ID"
+  const PANELES = [
+    {
+      id: 1,
+      titulo: "Ingreso al Templo Viejo",
+      audio: {
+        es: "https://drive.google.com/uc?export=download&id=PEGA_AQUI_EL_ID",
+        qu: "",
+        en: ""
+      }
+    },
+    {
+      id: 2,
+      titulo: "Plaza Circular Hundida",
+      audio: { es: "", qu: "", en: "" }
+    },
+    {
+      id: 3,
+      titulo: "Galería de los Laberintos",
+      audio: { es: "", qu: "", en: "" }
+    },
+    {
+      id: 4,
+      titulo: "El Lanzón Monolítico",
+      audio: { es: "", qu: "", en: "" }
+    },
+    {
+      id: 5,
+      titulo: "Portada de las Falcónidas",
+      audio: { es: "", qu: "", en: "" }
+    }
+  ];
+
+  const IDIOMAS = {
+    es: "Español",
+    qu: "Quechua",
+    en: "English"
+  };
+</script>
+<style>
+  :root{
+    --piedra: #EDE7DD;
+    --piedra-osc: #DCD3C1;
+    --tinta: #241F1A;
+    --tinta-suave: #5A5044;
+    --bronce: #7A6234;
+    --oxido: #8A3B2E;
+    --borde: #C9BFA9;
+    --blanco: #FBF9F4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--piedra);
+    color:var(--tinta);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  @font-face{
+    font-family:'Fraunces';
+    src:local('Fraunces');
+  }
+  .titulo-museo{
+    font-family:'Fraunces',Georgia,'Times New Roman',serif;
+    font-weight:600;
+  }
+  header{
+    padding:28px 20px 20px;
+    border-bottom:1px solid var(--borde);
+    text-align:center;
+  }
+  header h1{
+    font-size:22px;
+    margin:0 0 4px;
+    letter-spacing:0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--tinta-suave);
+    font-size:14px;
+  }
+  main{
+    max-width:520px;
+    margin:0 auto;
+    padding:20px 16px 60px;
+  }
+
+  /* --- Selector de idioma --- */
+  .idiomas{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    margin:20px 0 28px;
+  }
+  .idiomas button{
+    flex:1;
+    padding:10px 8px;
+    border:1px solid var(--borde);
+    background:var(--blanco);
+    color:var(--tinta-suave);
+    border-radius:6px;
+    font-size:14px;
+    font-family:inherit;
+    cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .idiomas button.activo{
+    background:var(--bronce);
+    border-color:var(--bronce);
+    color:var(--blanco);
+  }
+
+  /* --- Vista de reproductor (cuando llega por QR con panel definido) --- */
+  .placa{
+    background:var(--blanco);
+    border:1px solid var(--borde);
+    border-radius:10px;
+    padding:28px 24px;
+    text-align:center;
+  }
+  .placa .num{
+    font-family:'Fraunces',Georgia,serif;
+    font-size:56px;
+    line-height:1;
+    color:var(--oxido);
+    margin-bottom:6px;
+  }
+  .placa .num-label{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--tinta-suave);
+    margin-bottom:14px;
+  }
+  .placa h2{
+    font-family:'Fraunces',Georgia,serif;
+    font-size:20px;
+    margin:0 0 20px;
+  }
+  audio{
+    width:100%;
+    margin-top:4px;
+  }
+  .sin-audio{
+    color:var(--tinta-suave);
+    font-size:14px;
+    padding:14px;
+    background:var(--piedra-osc);
+    border-radius:6px;
+  }
+  .volver{
+    display:inline-block;
+    margin-top:20px;
+    color:var(--bronce);
+    text-decoration:none;
+    font-size:14px;
+    border-bottom:1px solid var(--bronce);
+  }
+
+  /* --- Lista general de paneles (cuando no hay ?panel en la URL) --- */
+  .lista h2{
+    font-family:'Fraunces',Georgia,serif;
+    font-size:18px;
+    margin:0 0 14px;
+  }
+  .panel-item{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background:var(--blanco);
+    border:1px solid var(--borde);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    text-decoration:none;
+    color:var(--tinta);
+  }
+  .panel-item .n{
+    font-family:'Fraunces',Georgia,serif;
+    font-size:22px;
+    color:var(--oxido);
+    min-width:32px;
+  }
+  .panel-item .t{
+    font-size:15px;
+  }
+
+  footer{
+    text-align:center;
+    color:var(--tinta-suave);
+    font-size:12px;
+    padding:20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="titulo-museo">Museo Nacional Chavín</h1>
+  <p>Sistema de audioguías</p>
+</header>
+
+<main id="main"></main>
+
+<footer>Escanea el código QR de cada panel para escuchar su audio.</footer>
+
+<script>
+  function getParam(nombre){
+    const params = new URLSearchParams(window.location.search);
+    return params.get(nombre);
+  }
+
+  function render(){
+    const main = document.getElementById('main');
+    const panelId = parseInt(getParam('panel'));
+    let idioma = getParam('lang') || 'es';
+    if(!IDIOMAS[idioma]) idioma = 'es';
+
+    const panel = PANELES.find(p => p.id === panelId);
+
+    if(panel){
+      renderReproductor(main, panel, idioma);
+    } else {
+      renderLista(main);
+    }
+  }
+
+  function renderReproductor(main, panel, idiomaActual){
+    const audioUrl = panel.audio[idiomaActual];
+
+    let botonesIdioma = Object.keys(IDIOMAS).map(function(cod){
+      const activo = cod === idiomaActual ? 'activo' : '';
+      return '<button class="' + activo + '" data-lang="' + cod + '">' + IDIOMAS[cod] + '</button>';
+    }).join('');
+
+    let cuerpoAudio;
+    if(audioUrl){
+      cuerpoAudio = '<audio controls preload="none" src="' + audioUrl + '"></audio>';
+    } else {
+      cuerpoAudio = '<div class="sin-audio">Audio en ' + IDIOMAS[idiomaActual] + ' aún no disponible para este panel.</div>';
+    }
+
+    main.innerHTML =
+      '<div class="idiomas">' + botonesIdioma + '</div>' +
+      '<div class="placa">' +
+        '<div class="num-label">Panel</div>' +
+        '<div class="num">' + panel.id + '</div>' +
+        '<h2>' + panel.titulo + '</h2>' +
+        cuerpoAudio +
+      '</div>' +
+      '<a class="volver" href="' + window.location.pathname + '">← Ver todos los paneles</a>';
+
+    main.querySelectorAll('.idiomas button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', btn.dataset.lang);
+        window.location.href = url.toString();
+      });
+    });
+  }
+
+  function renderLista(main){
+    let items = PANELES.map(function(p){
+      return '<a class="panel-item" href="?panel=' + p.id + '&lang=es">' +
+               '<span class="n">' + p.id + '</span>' +
+               '<span class="t">' + p.titulo + '</span>' +
+             '</a>';
+    }).join('');
+
+    main.innerHTML =
+      '<div class="lista">' +
+        '<h2>Recorrido</h2>' +
+        items +
+      '</div>';
+  }
+
+  render();
+</script>
+
+</body>
+</html>

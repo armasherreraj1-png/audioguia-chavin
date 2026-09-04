@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — Audioguías Museo Chavín</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --piedra:#EDE7DD; --piedra-osc:#DCD3C1; --tinta:#241F1A; --tinta-suave:#5A5044;
+    --bronce:#7A6234; --oxido:#8A3B2E; --borde:#C9BFA9; --blanco:#FBF9F4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--piedra); color:var(--tinta);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    margin:0; padding:0 16px 60px;
+  }
+  header{ max-width:720px; margin:0 auto; padding:28px 0 16px; text-align:center; }
+  header h1{ font-size:20px; margin:0 0 4px; }
+  header p{ margin:0; color:var(--tinta-suave); font-size:14px; }
+
+  main{ max-width:720px; margin:0 auto; }
+  section{
+    background:var(--blanco); border:1px solid var(--borde); border-radius:10px;
+    padding:20px 20px 22px; margin-bottom:20px;
+  }
+  section h2{ font-size:16px; margin:0 0 14px; }
+
+  label{ display:block; font-size:13px; color:var(--tinta-suave); margin-bottom:4px; margin-top:12px; }
+  label:first-of-type{ margin-top:0; }
+  input[type="text"], input[type="number"]{
+    width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px;
+    font-size:14px; font-family:inherit;
+  }
+  .fila-idiomas{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;}
+  .fila-idiomas .campo span{ font-size:12px; color:var(--tinta-suave); }
+
+  .ayuda{ font-size:12px; color:var(--tinta-suave); margin-top:4px; }
+
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:6px;
+    padding:10px 16px; font-size:14px;
+  }
+  .btn-principal{ background:var(--bronce); color:var(--blanco); width:100%; margin-top:16px; }
+  .btn-secundario{ background:var(--piedra-osc); color:var(--tinta); }
+  .btn-peligro{ background:transparent; color:var(--oxido); border:1px solid var(--oxido); padding:6px 10px; font-size:12px; }
+
+  table{ width:100%; border-collapse:collapse; margin-top:6px; }
+  th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--borde); font-size:13px; vertical-align:top; }
+  th{ color:var(--tinta-suave); font-weight:600; }
+  .estado{ display:inline-block; padding:2px 7px; border-radius:10px; font-size:11px; margin-right:4px; }
+  .estado.si{ background:#DDE8D8; color:#3A5A32; }
+  .estado.no{ background:#EFE0DC; color:var(--oxido); }
+
+  .qrs{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  .qr-item{ text-align:center; }
+  .qr-item .caja{ background:white; padding:8px; border-radius:6px; display:inline-block; }
+  .qr-item p{ font-size:12px; color:var(--tinta-suave); margin:6px 0 0; }
+
+  .aviso{
+    background:#F3EAD9; border:1px solid var(--borde); border-radius:8px;
+    padding:12px 14px; font-size:13px; color:var(--tinta-suave); margin-bottom:20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Administración de audioguías</h1>
+  <p>Museo Nacional Chavín</p>
+</header>
+
+<main>
+  <div class="aviso">
+    Aquí agregas o editas los paneles y sus audios. Cuando termines, descarga el
+    archivo actualizado y súbelo a tu sitio (reemplazando el anterior). Los QR
+    de abajo se generan solos con la lista actual.
+  </div>
+
+  <section>
+    <h2 id="tituloForm">Agregar panel</h2>
+    <label>Número de panel</label>
+    <input type="number" id="fId" min="1">
+
+    <label>Título del panel</label>
+    <input type="text" id="fTitulo" placeholder="Ej. Portada de las Falcónidas">
+
+    <div class="fila-idiomas">
+      <div class="campo">
+        <span>Link de Google Drive — Español</span>
+        <input type="text" id="fEs" placeholder="Pega aquí el link para compartir de Drive">
+      </div>
+      <div class="campo">
+        <span>Link de Google Drive — Quechua</span>
+        <input type="text" id="fQu" placeholder="Pega aquí el link para compartir de Drive">
+      </div>
+      <div class="campo">
+        <span>Link de Google Drive — Inglés</span>
+        <input type="text" id="fEn" placeholder="Pega aquí el link para compartir de Drive">
+      </div>
+    </div>
+    <div class="ayuda">
+      En Drive: clic derecho sobre el audio → Compartir → "Cualquiera con el enlace" → Copiar enlace. Pega ese enlace completo tal cual, aquí lo convertimos automáticamente.
+    </div>
+
+    <button class="btn-principal" onclick="guardarPanel()">Guardar panel</button>
+  </section>
+
+  <section>
+    <h2>Paneles actuales</h2>
+    <table>
+      <thead>
+        <tr><th>Panel</th><th>Título</th><th>Audios</th><th></th></tr>
+      </thead>
+      <tbody id="tablaPaneles"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Publicar cambios</h2>
+    <div class="ayuda" style="margin-bottom:12px;">
+      Esto genera el archivo audioguia.html con todos tus paneles ya cargados.
+      Súbelo a tu repositorio de GitHub reemplazando el archivo anterior
+      (Add file → Upload files → arrastra este archivo → Commit changes).
+    </div>
+    <button class="btn-principal" onclick="descargarSitio()">Descargar audioguia.html actualizado</button>
+  </section>
+
+  <section>
+    <h2>Códigos QR</h2>
+    <label>URL pública de tu sitio</label>
+    <input type="text" id="baseUrl" placeholder="https://tuusuario.github.io/audioguia-chavin/audioguia.html">
+    <button class="btn-principal" onclick="generarQR()">Generar QR de todos los paneles</button>
+    <div id="hojaQR"></div>
+  </section>
+</main>
+
+<script>
+  const IDIOMAS = { es: "Español", qu: "Quechua", en: "English" };
+  const CLAVE = "panelesChavinAdmin";
+  const CLAVE_URL = "urlSitioChavin";
+
+  function cargar(){
+    const guardado = localStorage.getItem(CLAVE);
+    if(guardado) return JSON.parse(guardado);
+    return [
+      { id: 1, titulo: "Ingreso al Templo Viejo", audio: { es:"", qu:"", en:"" } },
+      { id: 2, titulo: "Plaza Circular Hundida", audio: { es:"", qu:"", en:"" } },
+      { id: 3, titulo: "Galería de los Laberintos", audio: { es:"", qu:"", en:"" } },
+      { id: 4, titulo: "El Lanzón Monolítico", audio: { es:"", qu:"", en:"" } },
+      { id: 5, titulo: "Portada de las Falcónidas", audio: { es:"", qu:"", en:"" } }
+    ];
+  }
+
+  let paneles = cargar();
+  let editando = null;
+
+  function guardarEstado(){
+    localStorage.setItem(CLAVE, JSON.stringify(paneles));
+  }
+
+  function driveIdDesdeLink(link){
+    if(!link) return "";
+    link = link.trim();
+    if(!link.includes('drive.google.com')) return link; // ya es un link directo u otro proveedor
+    const m = link.match(/\/d\/([a-zA-Z0-9_-]+)/) || link.match(/id=([a-zA-Z0-9_-]+)/);
+    if(m) return "https://drive.google.com/uc?export=download&id=" + m[1];
+    return link;
+  }
+
+  function guardarPanel(){
+    const id = parseInt(document.getElementById('fId').value);
+    const titulo = document.getElementById('fTitulo').value.trim();
+    if(!id || !titulo){
+      alert('Falta el número de panel o el título.');
+      return;
+    }
+    const nuevo = {
+      id: id,
+      titulo: titulo,
+      audio: {
+        es: driveIdDesdeLink(document.getElementById('fEs').value),
+        qu: driveIdDesdeLink(document.getElementById('fQu').value),
+        en: driveIdDesdeLink(document.getElementById('fEn').value)
+      }
+    };
+
+    const idx = paneles.findIndex(p => p.id === id);
+    if(idx >= 0) paneles[idx] = nuevo;
+    else paneles.push(nuevo);
+    paneles.sort((a,b) => a.id - b.id);
+
+    guardarEstado();
+    limpiarForm();
+    render();
+  }
+
+  function limpiarForm(){
+    document.getElementById('fId').value = '';
+    document.getElementById('fTitulo').value = '';
+    document.getElementById('fEs').value = '';
+    document.getElementById('fQu').value = '';
+    document.getElementById('fEn').value = '';
+    document.getElementById('tituloForm').textContent = 'Agregar panel';
+  }
+
+  function editar(id){
+    const p = paneles.find(p => p.id === id);
+    if(!p) return;
+    document.getElementById('fId').value = p.id;
+    document.getElementById('fTitulo').value = p.titulo;
+    document.getElementById('fEs').value = p.audio.es;
+    document.getElementById('fQu').value = p.audio.qu;
+    document.getElementById('fEn').value = p.audio.en;
+    document.getElementById('tituloForm').textContent = 'Editar panel ' + id;
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function eliminar(id){
+    if(!confirm('¿Eliminar el panel ' + id + '?')) return;
+    paneles = paneles.filter(p => p.id !== id);
+    guardarEstado();
+    render();
+  }
+
+  function render(){
+    const tbody = document.getElementById('tablaPaneles');
+    tbody.innerHTML = paneles.map(function(p){
+      const badges = Object.keys(IDIOMAS).map(function(cod){
+        const ok = p.audio[cod] ? 'si' : 'no';
+        return '<span class="estado ' + ok + '">' + cod.toUpperCase() + '</span>';
+      }).join('');
+      return '<tr>' +
+        '<td>' + p.id + '</td>' +
+        '<td>' + p.titulo + '</td>' +
+        '<td>' + badges + '</td>' +
+        '<td>' +
+          '<button class="btn-secundario" onclick="editar(' + p.id + ')">Editar</button> ' +
+          '<button class="btn-peligro" onclick="eliminar(' + p.id + ')">Eliminar</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function descargarSitio(){
+    const panelesJSON = JSON.stringify(paneles, null, 2);
+    const html = PLANTILLA_SITIO.replace('__PANELES__', panelesJSON);
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'audioguia.html';
+    a.click();
+  }
+
+  function generarQR(){
+    const base = document.getElementById('baseUrl').value.trim();
+    if(!base){ alert('Pega primero la URL pública de tu sitio.'); return; }
+    localStorage.setItem(CLAVE_URL, base);
+
+    const hoja = document.getElementById('hojaQR');
+    hoja.innerHTML = '';
+    paneles.forEach(function(p){
+      const bloque = document.createElement('div');
+      bloque.innerHTML = '<h3 style="font-size:14px;margin:18px 0 4px;">Panel ' + p.id + ' — ' + p.titulo + '</h3>';
+      const qrs = document.createElement('div');
+      qrs.className = 'qrs';
+      bloque.appendChild(qrs);
+      hoja.appendChild(bloque);
+
+      Object.keys(IDIOMAS).forEach(function(cod){
+        const url = base + '?panel=' + p.id + '&lang=' + cod;
+        const wrap = document.createElement('div');
+        wrap.className = 'qr-item';
+        const caja = document.createElement('div');
+        caja.className = 'caja';
+        wrap.appendChild(caja);
+        const label = document.createElement('p');
+        label.textContent = IDIOMAS[cod];
+        wrap.appendChild(label);
+        qrs.appendChild(wrap);
+        new QRCode(caja, { text: url, width: 100, height: 100 });
+      });
+    });
+  }
+
+  // plantilla completa del sitio público, con __PANELES__ como marcador
+  const PLANTILLA_SITIO = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audioguía — Museo Nacional Chavín</title>
+<script>
+  const PANELES = __PANELES__;
+  const IDIOMAS = { es: "Español", qu: "Quechua", en: "English" };
+<\/script>
+<style>
+  :root{
+    --piedra: #EDE7DD; --piedra-osc: #DCD3C1; --tinta: #241F1A; --tinta-suave: #5A5044;
+    --bronce: #7A6234; --oxido: #8A3B2E; --borde: #C9BFA9; --blanco: #FBF9F4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--piedra); color:var(--tinta); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; line-height:1.5; }
+  header{ padding:28px 20px 20px; border-bottom:1px solid var(--borde); text-align:center; }
+  header h1{ font-size:22px; margin:0 0 4px; }
+  header p{ margin:0; color:var(--tinta-suave); font-size:14px; }
+  main{ max-width:520px; margin:0 auto; padding:20px 16px 60px; }
+  .idiomas{ display:flex; gap:8px; justify-content:center; margin:20px 0 28px; }
+  .idiomas button{ flex:1; padding:10px 8px; border:1px solid var(--borde); background:var(--blanco); color:var(--tinta-suave); border-radius:6px; font-size:14px; font-family:inherit; cursor:pointer; }
+  .idiomas button.activo{ background:var(--bronce); border-color:var(--bronce); color:var(--blanco); }
+  .placa{ background:var(--blanco); border:1px solid var(--borde); border-radius:10px; padding:28px 24px; text-align:center; }
+  .placa .num{ font-size:56px; line-height:1; color:var(--oxido); margin-bottom:6px; }
+  .placa .num-label{ font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--tinta-suave); margin-bottom:14px; }
+  .placa h2{ font-size:20px; margin:0 0 20px; }
+  audio{ width:100%; margin-top:4px; }
+  .sin-audio{ color:var(--tinta-suave); font-size:14px; padding:14px; background:var(--piedra-osc); border-radius:6px; }
+  .volver{ display:inline-block; margin-top:20px; color:var(--bronce); text-decoration:none; font-size:14px; border-bottom:1px solid var(--bronce); }
+  .lista h2{ font-size:18px; margin:0 0 14px; }
+  .panel-item{ display:flex; align-items:center; gap:14px; background:var(--blanco); border:1px solid var(--borde); border-radius:8px; padding:14px 16px; margin-bottom:10px; text-decoration:none; color:var(--tinta); }
+  .panel-item .n{ font-size:22px; color:var(--oxido); min-width:32px; }
+  .panel-item .t{ font-size:15px; }
+  footer{ text-align:center; color:var(--tinta-suave); font-size:12px; padding:20px; }
+</style>
+</head>
+<body>
+<header><h1>Museo Nacional Chavín</h1><p>Sistema de audioguías</p></header>
+<main id="main"></main>
+<footer>Escanea el código QR de cada panel para escuchar su audio.</footer>
+<script>
+  function getParam(n){ return new URLSearchParams(window.location.search).get(n); }
+  function render(){
+    const main = document.getElementById('main');
+    const panelId = parseInt(getParam('panel'));
+    let idioma = getParam('lang') || 'es';
+    if(!IDIOMAS[idioma]) idioma = 'es';
+    const panel = PANELES.find(p => p.id === panelId);
+    if(panel) renderReproductor(main, panel, idioma);
+    else renderLista(main);
+  }
+  function renderReproductor(main, panel, idiomaActual){
+    const audioUrl = panel.audio[idiomaActual];
+    let botones = Object.keys(IDIOMAS).map(function(c){
+      return '<button class="' + (c===idiomaActual?'activo':'') + '" data-lang="' + c + '">' + IDIOMAS[c] + '</button>';
+    }).join('');
+    let cuerpo = audioUrl
+      ? '<audio controls preload="none" src="' + audioUrl + '"></audio>'
+      : '<div class="sin-audio">Audio en ' + IDIOMAS[idiomaActual] + ' aún no disponible para este panel.</div>';
+    main.innerHTML =
+      '<div class="idiomas">' + botones + '</div>' +
+      '<div class="placa"><div class="num-label">Panel</div><div class="num">' + panel.id + '</div>' +
+      '<h2>' + panel.titulo + '</h2>' + cuerpo + '</div>' +
+      '<a class="volver" href="' + window.location.pathname + '">← Ver todos los paneles</a>';
+    main.querySelectorAll('.idiomas button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', btn.dataset.lang);
+        window.location.href = url.toString();
+      });
+    });
+  }
+  function renderLista(main){
+    let items = PANELES.map(function(p){
+      return '<a class="panel-item" href="?panel=' + p.id + '&lang=es"><span class="n">' + p.id + '</span><span class="t">' + p.titulo + '</span></a>';
+    }).join('');
+    main.innerHTML = '<div class="lista"><h2>Recorrido</h2>' + items + '</div>';
+  }
+  render();
+<\/script>
+</body>
+</html>`;
+
+  // inicializar
+  document.getElementById('baseUrl').value = localStorage.getItem(CLAVE_URL) || '';
+  render();
+</script>
+
+</body>
+</html>
